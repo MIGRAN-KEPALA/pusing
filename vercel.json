@@ -6,8 +6,12 @@
       "dest": "/api/$1"
     },
     {
+      "src": "/obfuscator",
+      "dest": "/public/obfuscator.html"
+    },
+    {
       "src": "/",
-      "dest": "/api/index.js"
+      "dest": "/public/index.html"
     }
   ],
   "functions": {
