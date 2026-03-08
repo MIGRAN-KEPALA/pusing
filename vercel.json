@@ -1,23 +1,12 @@
 {
   "version": 2,
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/obfuscator",
-      "dest": "/public/obfuscator.html"
-    },
-    {
-      "src": "/",
-      "dest": "/public/index.html"
-    }
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/:path*" },
+    { "source": "/obfuscator", "destination": "/obfuscator.html" },
+    { "source": "/", "destination": "/index.html" }
   ],
   "functions": {
-    "api/obfuscate.js": {
-      "maxDuration": 30
-    }
+    "api/obfuscate.js": { "maxDuration": 30 }
   },
   "headers": [
     {

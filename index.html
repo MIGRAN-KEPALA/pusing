@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>wowziesobf — Lua Obfuscator for Roblox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #07070f;
+    --surface:  #0d0d1c;
+    --border:   #1a1a30;
+    --purple:   #6c63ff;
+    --violet:   #a78bfa;
+    --green:    #39ff8f;
+    --dim:      #3a3a5a;
+    --text:     #d0d0e8;
+    --muted:    #555570;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ── Custom cursor ── */
+  #cursor {
+    position: fixed; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--purple); pointer-events: none; z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform .1s, background .2s;
+    mix-blend-mode: screen;
+  }
+  #cursor-ring {
+    position: fixed; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid rgba(108,99,255,.4); pointer-events: none; z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: transform .18s ease, width .2s, height .2s;
+  }
+
+  /* ── Grid background ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Noise grain overlay ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: .5;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 58px;
+    background: rgba(7,7,15,.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--purple), var(--violet));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 0 16px rgba(108,99,255,.4);
+  }
+  .logo-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px; color: #fff; letter-spacing: 1px;
+  }
+  .logo-version {
+    font-size: 10px; color: var(--purple);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  nav ul {
+    list-style: none; display: flex; gap: 32px;
+  }
+  nav ul a {
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; transition: color .2s;
+  }
+  nav ul a:hover { color: var(--violet); }
+
+  .nav-cta {
+    background: linear-gradient(90deg, var(--purple), var(--violet));
+    color: #fff !important; padding: 7px 20px; border-radius: 6px;
+    font-weight: 700 !important;
+    box-shadow: 0 0 16px rgba(108,99,255,.3);
+    transition: box-shadow .2s !important;
+  }
+  .nav-cta:hover { box-shadow: 0 0 28px rgba(108,99,255,.6) !important; color: #fff !important; }
+
+  /* ── Hero ── */
+  #hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 100px 24px 60px;
+    overflow: hidden;
+  }
+
+  /* Glowing orb bg */
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); pointer-events: none;
+    animation: drift 8s ease-in-out infinite alternate;
+  }
+  .orb-1 {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(108,99,255,.18), transparent 70%);
+    top: 5%; left: 10%;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(57,255,143,.1), transparent 70%);
+    bottom: 10%; right: 5%;
+    animation-delay: -4s;
+  }
+  @keyframes drift {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(30px, 20px) scale(1.08); }
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.25);
+    border-radius: 20px; padding: 5px 14px; margin-bottom: 28px;
+    font-family: 'Share Tech Mono', monospace; font-size: 11px;
+    color: var(--violet); letter-spacing: 1px;
+    animation: fadeUp .6s ease both;
+  }
+  .badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; } 50% { opacity: .4; }
+  }
+
+  h1 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(38px, 7vw, 80px);
+    line-height: 1.05;
+    color: #fff;
+    animation: fadeUp .7s .1s ease both;
+    letter-spacing: -1px;
+  }
+  h1 .accent {
+    background: linear-gradient(90deg, var(--purple), var(--violet), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    max-width: 560px; margin: 20px auto 0;
+    font-size: 17px; color: var(--muted); line-height: 1.7;
+    font-weight: 400;
+    animation: fadeUp .7s .2s ease both;
+  }
+
+  .hero-buttons {
+    display: flex; gap: 14px; margin-top: 38px; justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeUp .7s .3s ease both;
+  }
+
+  .btn-primary {
+    background: linear-gradient(90deg, var(--purple), var(--violet));
+    color: #fff; border: none; border-radius: 8px;
+    padding: 13px 32px; font-size: 14px; font-weight: 700;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    cursor: pointer; text-decoration: none;
+    font-family: 'Rajdhani', sans-serif;
+    box-shadow: 0 0 24px rgba(108,99,255,.35);
+    transition: box-shadow .2s, transform .15s;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 40px rgba(108,99,255,.6);
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 13px 32px;
+    font-size: 14px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; cursor: pointer; text-decoration: none;
+    font-family: 'Rajdhani', sans-serif;
+    transition: border-color .2s, color .2s, transform .15s;
+  }
+  .btn-ghost:hover {
+    border-color: var(--purple); color: var(--violet);
+    transform: translateY(-2px);
+  }
+
+  /* ── Code preview ── */
+  .code-preview {
+    margin-top: 60px; width: 100%; max-width: 780px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 0 60px rgba(108,99,255,.12), 0 40px 80px rgba(0,0,0,.5);
+    animation: fadeUp .8s .4s ease both;
+  }
+  .code-bar {
+    height: 36px; background: #0b0b18;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 7px; padding: 0 14px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .code-label {
+    margin-left: auto; font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; color: var(--muted); letter-spacing: 1px;
+  }
+  .code-body {
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .code-pane {
+    padding: 20px 22px;
+    font-family: 'Share Tech Mono', monospace; font-size: 12px;
+    line-height: 1.8; color: #888;
+    border-right: 1px solid var(--border);
+  }
+  .code-pane:last-child { border-right: none; color: var(--green); }
+  .code-pane .ln { color: #2a2a45; user-select: none; margin-right: 14px; }
+  .code-pane .kw { color: var(--violet); }
+  .code-pane .fn { color: #60c8ff; }
+  .code-pane .str { color: #ffb86c; }
+  .code-pane .cm { color: #3a3a5a; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center; gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .stat-item {
+    flex: 1; max-width: 220px; text-align: center;
+    padding: 28px 16px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 32px; color: #fff; display: block;
+    background: linear-gradient(90deg, var(--purple), var(--violet));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .stat-label {
+    font-size: 12px; color: var(--muted); letter-spacing: 1px;
+    text-transform: uppercase; margin-top: 4px; display: block;
+  }
+
+  /* ── Features section ── */
+  #features {
+    position: relative; z-index: 1;
+    padding: 90px 48px;
+    max-width: 1100px; margin: 0 auto;
+  }
+
+  .section-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; color: var(--purple); letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-tag::before {
+    content: ''; width: 24px; height: 1px; background: var(--purple);
+  }
+
+  .section-title {
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 700; color: #fff; margin-bottom: 14px;
+    font-family: 'Share Tech Mono', monospace; letter-spacing: -0.5px;
+  }
+
+  .section-sub {
+    font-size: 15px; color: var(--muted); max-width: 480px; line-height: 1.7;
+    margin-bottom: 52px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .feature-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 22px 24px;
+    transition: border-color .2s, transform .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .feature-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(108,99,255,.06), transparent);
+    opacity: 0; transition: opacity .2s;
+  }
+  .feature-card:hover {
+    border-color: rgba(108,99,255,.4);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(108,99,255,.12);
+  }
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    font-size: 22px; margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; border-radius: 8px;
+    background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.2);
+  }
+  .feature-title {
+    font-size: 15px; font-weight: 700; color: #e0e0f0; margin-bottom: 6px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .vip-badge {
+    background: linear-gradient(90deg,#7c3aed,#a78bfa);
+    color: #fff; font-size: 8px; padding: 2px 6px;
+    border-radius: 3px; font-weight: 800; letter-spacing: .5px;
+  }
+  .feature-desc {
+    font-size: 13px; color: var(--muted); line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* ── Pricing section ── */
+  #pricing {
+    position: relative; z-index: 1;
+    padding: 90px 48px;
+    max-width: 900px; margin: 0 auto; text-align: center;
+  }
+
+  .plans {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 20px; margin-top: 48px; text-align: left;
+  }
+
+  .plan {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 30px 28px;
+    transition: transform .2s;
+  }
+  .plan:hover { transform: translateY(-4px); }
+  .plan-featured {
+    border-color: rgba(108,99,255,.4);
+    background: linear-gradient(135deg, rgba(108,99,255,.08), var(--surface));
+    box-shadow: 0 0 40px rgba(108,99,255,.12);
+    position: relative;
+  }
+  .plan-featured::before {
+    content: 'MOST POPULAR';
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(90deg, var(--purple), var(--violet));
+    color: #fff; font-size: 9px; font-weight: 800;
+    padding: 3px 12px; border-radius: 10px; letter-spacing: 1.5px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .plan-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px; color: var(--muted); letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .plan-price {
+    font-size: 36px; font-weight: 700; color: #fff;
+    font-family: 'Share Tech Mono', monospace;
+    margin-bottom: 6px;
+  }
+  .plan-price span { font-size: 16px; color: var(--muted); }
+  .plan-desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .plan-features { list-style: none; margin-bottom: 28px; }
+  .plan-features li {
+    font-size: 13px; color: var(--text); padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .check { color: var(--green); font-size: 14px; }
+  .cross { color: var(--dim); font-size: 14px; }
+
+  /* ── CTA section ── */
+  #cta {
+    position: relative; z-index: 1;
+    padding: 90px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, transparent, rgba(108,99,255,.05), transparent);
+  }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--muted);
+  }
+  footer a { color: var(--muted); text-decoration: none; transition: color .2s; }
+  footer a:hover { color: var(--violet); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="logo">
+    <div class="logo-icon">🛡</div>
+    <div>
+      <div class="logo-text">wowziesobf</div>
+      <div class="logo-version">V1.2</div>
+    </div>
+  </a>
+  <ul>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="https://discord.gg/" target="_blank">Discord</a></li>
+    <li><a href="/obfuscator" class="nav-cta">Launch App</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    ONLINE — v1.2 — LUAU / LUA 5.1
+  </div>
+
+  <h1>
+    Protect Your<br/>
+    <span class="accent">Roblox Scripts</span>
+  </h1>
+
+  <p class="hero-sub">
+    Military-grade Lua obfuscation powered by a Supabase Edge Function.
+    17 obfuscation layers. Zero reverse-engineering.
+  </p>
+
+  <div class="hero-buttons">
+    <a href="/obfuscator" class="btn-primary">Start Obfuscating</a>
+    <a href="https://discord.gg/" class="btn-ghost">Join Discord</a>
+  </div>
+
+  <div class="code-preview">
+    <div class="code-bar">
+      <span class="dot dot-r"></span>
+      <span class="dot dot-y"></span>
+      <span class="dot dot-g"></span>
+      <span class="code-label">INPUT → OUTPUT</span>
+    </div>
+    <div class="code-body">
+      <div class="code-pane">
+        <span class="cm">-- your script</span><br/>
+        <span class="ln">1</span><span class="kw">local</span> Players = <br/>
+        &nbsp;&nbsp;game:<span class="fn">GetService</span>(<span class="str">"Players"</span>)<br/>
+        <span class="ln">2</span><span class="kw">local</span> player =<br/>
+        &nbsp;&nbsp;Players.LocalPlayer<br/>
+        <span class="ln">3</span><span class="fn">print</span>(<span class="str">"Hello, "</span><br/>
+        &nbsp;&nbsp;.. player.Name)<br/>
+        <span class="ln">4</span><span class="kw">local</span> x = <span class="str">1337</span>
+      </div>
+      <div class="code-pane">
+        <span style="color:#3a5a3a">--[[ Protected v1.2 ]]</span><br/>
+        <span style="color:#6aefaa">local __mx0xa3f=function(s,k)</span><br/>
+        <span style="color:#4adf8a">&nbsp;local r={} local kl=#k</span><br/>
+        <span style="color:#6aefaa">&nbsp;for i=1,#s do r[i]=</span><br/>
+        <span style="color:#4adf8a">&nbsp;string.char(bit32.bxor(</span><br/>
+        <span style="color:#6aefaa">&nbsp;string.byte(s,i),</span><br/>
+        <span style="color:#4adf8a">&nbsp;string.byte(k,i%kl+1)))</span><br/>
+        <span style="color:#6aefaa">&nbsp;end return table.concat(r) end</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num">17</span>
+    <span class="stat-label">Obfuscation Layers</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">∞</span>
+    <span class="stat-label">Polymorphic Output</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">&lt;1s</span>
+    <span class="stat-label">Compile Time</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">300KB</span>
+    <span class="stat-label">Max Script Size</span>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+  <div class="section-tag">Features</div>
+  <div class="section-title">Every Layer Matters</div>
+  <p class="section-sub">
+    Stack multiple obfuscation passes for exponentially harder reverse engineering.
+  </p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔤</div>
+      <div class="feature-title">Hex Encoding</div>
+      <p class="feature-desc">All string literals converted to \xNN hex escape sequences. Unreadable at a glance.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✂️</div>
+      <div class="feature-title">String Splitting</div>
+      <p class="feature-desc">Long strings fragmented into concatenated parts, breaking simple string searches.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">XOR Cipher</div>
+      <p class="feature-desc">Single-key XOR encryption on all string literals with runtime decoder injection.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔢</div>
+      <div class="feature-title">Constant Folding</div>
+      <p class="feature-desc">Numbers replaced with arithmetic expressions — (a + b + c) — obscuring constants.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔀</div>
+      <div class="feature-title">Variable Shuffle</div>
+      <p class="feature-desc">All local variables renamed to random _0xNNNNNNNN hex identifiers.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🐛</div>
+      <div class="feature-title">Anti-Debug</div>
+      <p class="feature-desc">Detects debug hooks and executor tampering. Crashes the script if triggered.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗑️</div>
+      <div class="feature-title" style="gap:8px">Junk Code</div>
+      <p class="feature-desc">Dead code blocks injected throughout — confuse deobfuscators and analysts.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔑</div>
+      <div class="feature-title">Multi-Key XOR</div>
+      <p class="feature-desc">Each string gets its own unique XOR key — no single key can decrypt everything.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔐</div>
+      <div class="feature-title">String Encryption</div>
+      <p class="feature-desc">256-byte S-box substitution cipher — AES-round style per-compile encryption.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌀</div>
+      <div class="feature-title">Control Flow</div>
+      <p class="feature-desc">Code blocks wrapped in opaque control flow predicates — confuses CFG analysis.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💻</div>
+      <div class="feature-title">Virtualization VM</div>
+      <p class="feature-desc">Entire script wrapped in a VM loader — the hardest layer to reverse engineer.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <div class="feature-title">Anti-VM / Sandbox</div>
+      <p class="feature-desc">Detects known executor sandboxes (syn, fluxus, electron) and kills execution.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <div class="feature-title">Polymorphic Encoding</div>
+      <p class="feature-desc">Every compile produces a uniquely encoded output — same script, never the same bytes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔡</div>
+      <div class="feature-title">Custom Alphabet</div>
+      <p class="feature-desc">Shuffled base64 alphabet encoding — different per-compile, defeats static decoders.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏱️</div>
+      <div class="feature-title">Runtime Guard</div>
+      <p class="feature-desc">Background task.spawn loop validates script integrity every 5–15 seconds.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🕵️</div>
+      <div class="feature-title">Advanced Anti-Debug</div>
+      <p class="feature-desc">Clock-based timing attacks + function environment validation. Runs at entry and exit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ── -->
+<section id="pricing">
+  <div class="section-tag" style="justify-content:center">Pricing</div>
+  <div class="section-title">100% Free</div>
+  <p class="section-sub" style="margin:0 auto 48px;text-align:center">
+    All 17 obfuscation layers are completely free. No paywalls, no limits.
+  </p>
+  <div style="display:flex;justify-content:center">
+    <div style="background:var(--surface);border:1px solid rgba(108,99,255,.4);border-radius:12px;padding:36px 48px;text-align:center;box-shadow:0 0 40px rgba(108,99,255,.12);max-width:500px;width:100%">
+      <div style="font-size:48px;margin-bottom:12px">🛡</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:32px;color:#fff;margin-bottom:8px">$0</div>
+      <div style="color:var(--muted);font-size:14px;margin-bottom:28px">All features. Forever free.</div>
+      <ul style="list-style:none;margin-bottom:28px;text-align:left">
+        <li style="font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> All 17 obfuscation layers</li>
+        <li style="font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> Virtualization VM</li>
+        <li style="font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> Multi-Key XOR &amp; String Encryption</li>
+        <li style="font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> Anti-VM / Anti-Sandbox</li>
+        <li style="font-size:13px;color:var(--text);padding:7px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> Runtime Guard</li>
+        <li style="font-size:13px;color:var(--text);padding:7px 0;display:flex;align-items:center;gap:8px"><span style="color:var(--green)">✓</span> Unlimited compiles</li>
+      </ul>
+      <a href="/obfuscator" class="btn-primary" style="display:block;text-align:center">Start Obfuscating Free</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section id="cta">
+  <div class="section-title" style="margin-bottom:14px">Ready to Protect?</div>
+  <p style="color:var(--muted);font-size:15px;margin-bottom:32px">
+    Join thousands of Roblox developers securing their scripts.
+  </p>
+  <a href="/obfuscator" class="btn-primary" style="font-size:15px;padding:15px 40px">
+    Launch Obfuscator →
+  </a>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#6c63ff,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:11px;">🛡</div>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:12px;color:#444">wowziesobf v1.2</span>
+  </div>
+  <div style="display:flex;gap:24px">
+    <a href="https://discord.gg/">Discord</a>
+    <a href="#">Terms</a>
+    <a href="#">Privacy</a>
+  </div>
+  <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#333">
+    © 2026 wowziesobf
+  </span>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring   = document.getElementById('cursor-ring');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top  = e.clientY + 'px';
+    ring.style.left   = e.clientX + 'px';
+    ring.style.top    = e.clientY + 'px';
+  });
+  document.querySelectorAll('a,button').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.style.width  = '50px';
+      ring.style.height = '50px';
+      ring.style.borderColor = 'rgba(108,99,255,.7)';
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.style.width  = '32px';
+      ring.style.height = '32px';
+      ring.style.borderColor = 'rgba(108,99,255,.4)';
+    });
+  });
+
+  // Scroll reveal
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .plan, .stat-item').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity .5s ease, transform .5s ease';
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>

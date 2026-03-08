@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>wowziesobf — Obfuscator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #090912; color: #ddd; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #090912; }
+  ::-webkit-scrollbar-thumb { background: #1e1e30; border-radius: 3px; }
+  textarea::placeholder { color: #1e1e30; }
+  button:focus { outline: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const API_URL = "/api/obfuscate";
+
+const ALL_FEATURES = [
+  { id: "hexEncoding",         label: "Hex Encoding" },
+  { id: "stringSplitting",     label: "String Splitting" },
+  { id: "xorCipher",           label: "XOR Cipher" },
+  { id: "antiDebug",           label: "Anti-Debug" },
+  { id: "variableShuffle",     label: "Variable Shuffle" },
+  { id: "constantFolding",     label: "Constant Folding" },
+  { id: "integrityCheck",      label: "Integrity Check" },
+  { id: "junkCode",            label: "Junk Code" },
+  { id: "advancedAntiDebug",   label: "Advanced Anti-Debug" },
+  { id: "polymorphicEncoding", label: "Polymorphic Encoding" },
+  { id: "customAlphabet",      label: "Custom Alphabet" },
+  { id: "multiKeyXor",         label: "Multi-Key XOR" },
+  { id: "stringEncryption",    label: "String Encryption" },
+  { id: "controlFlow",         label: "Control Flow" },
+  { id: "virtualization",      label: "Virtualization (VM)" },
+  { id: "antiVM",              label: "Anti-VM / Anti-Sandbox" },
+  { id: "runtimeGuard",        label: "Runtime Guard" },
+];
+
+const LANGUAGES = ["Luau (Roblox)", "Lua 5.1", "Lua 5.4"];
+
+function Toggle({ on, onChange, disabled }) {
+  return (
+    <button onClick={disabled ? undefined : onChange} style={{
+      width: 42, height: 22, borderRadius: 11, border: "none",
+      background: disabled ? "#1e1e2e" : on ? "#6c63ff" : "#1e1e2e",
+      position: "relative", cursor: disabled ? "not-allowed" : "pointer",
+      transition: "background .2s", flexShrink: 0,
+      outline: "none", opacity: disabled ? 0.35 : 1,
+    }}>
+      <span style={{
+        position: "absolute", top: 2, left: on ? 22 : 2,
+        width: 18, height: 18, borderRadius: "50%",
+        background: disabled ? "#333" : on ? "#fff" : "#444",
+        transition: "left .2s", display: "block",
+        boxShadow: on && !disabled ? "0 0 6px rgba(108,99,255,.6)" : "none",
+      }}/>
+    </button>
+  );
+}
+
+function App() {
+  const [code, setCode] = React.useState(`-- Paste your Roblox Luau script here\nlocal Players = game:GetService("Players")\nlocal player = Players.LocalPlayer\nprint("Hello, " .. player.Name)`);
+  const [output, setOutput] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [copied, setCopied] = React.useState(false);
+  const [lang, setLang] = React.useState(LANGUAGES[0]);
+  const [showLangMenu, setShowLangMenu] = React.useState(false);
+  const [tab, setTab] = React.useState("obfuscator");
+  const isVip = true;
+
+  const [options, setOptions] = React.useState(
+    Object.fromEntries(ALL_FEATURES.map(f => [f.id, true]))
+  );
+
+  const toggle = id => setOptions(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const compile = async () => {
+    if (!code.trim() || loading) return;
+    setLoading(true); setError(""); setOutput("");
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, options }),
+      });
+      const data = await res.json();
+      if (data.success) setOutput(data.obfuscated);
+      else setError(data.error || "Obfuscation failed");
+    } catch (e) {
+      setError("Network error — cannot reach API");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyOutput = () => {
+    navigator.clipboard.writeText(output);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div style={{ height:"100vh", display:"flex", flexDirection:"column" }}>
+      {/* TOP BAR */}
+      <div style={{
+        height:50, background:"#0e0e1b", borderBottom:"1px solid #1a1a2e",
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"0 18px", flexShrink:0,
+      }}>
+        <a href="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none" }}>
+          <div style={{
+            width:28, height:28, borderRadius:7,
+            background:"linear-gradient(135deg,#6c63ff,#a78bfa)",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:13, boxShadow:"0 0 12px rgba(108,99,255,.4)",
+          }}>🛡</div>
+          <div>
+            <div style={{ fontWeight:700, fontSize:12, letterSpacing:1, color:"#e0e0f0" }}>wowziesobf</div>
+            <div style={{ fontSize:9, color:"#6c63ff", marginTop:-1 }}>V1.2</div>
+          </div>
+        </a>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          
+          <button style={{
+            background:"#5865F2", border:"none", borderRadius:6,
+            padding:"5px 12px", color:"#fff", fontSize:11,
+            cursor:"pointer", fontFamily:"inherit",
+          }}>🎮 Discord</button>
+          <button style={{
+            background:"linear-gradient(90deg,#6c63ff,#a78bfa)", border:"none",
+            borderRadius:6, padding:"5px 12px", color:"#fff",
+            fontSize:11, cursor:"pointer", fontFamily:"inherit", fontWeight:700,
+          }}>Redeem Key</button>
+          <button style={{
+            background:"#3a1a1a", border:"1px solid #5a2a2a", borderRadius:6,
+            padding:"5px 12px", color:"#ff6b6b", fontSize:11,
+            cursor:"pointer", fontFamily:"inherit",
+          }}>LOG OUT</button>
+        </div>
+      </div>
+
+      {/* BODY */}
+      <div style={{ display:"flex", flex:1, overflow:"hidden" }}>
+        {/* SIDEBAR */}
+        <div style={{
+          width:218, background:"#0b0b18", borderRight:"1px solid #1a1a2e",
+          display:"flex", flexDirection:"column", flexShrink:0, overflowY:"auto",
+        }}>
+          <div style={{ padding:"12px 8px 4px" }}>
+            {[["obfuscator","🛡","Obfuscator"],["scripts","📄","My Scripts"]].map(([key,icon,label]) => (
+              <button key={key} onClick={() => setTab(key)} style={{
+                width:"100%", padding:"8px 12px", borderRadius:6, border:"none",
+                cursor:"pointer", fontSize:12, fontFamily:"inherit", textAlign:"left",
+                display:"flex", alignItems:"center", gap:8, marginBottom:2,
+                background: tab===key ? "rgba(108,99,255,.12)" : "transparent",
+                color: tab===key ? "#a78bfa" : "#555",
+                borderLeft: `2px solid ${tab===key ? "#6c63ff" : "transparent"}`,
+              }}>{icon} {label}</button>
+            ))}
+          </div>
+
+          <div style={{ padding:"4px 8px 6px", borderBottom:"1px solid #151525" }}>
+            <button style={{
+              width:"100%", padding:"7px 12px", borderRadius:6,
+              border:"1px solid #1e1e30", background:"transparent",
+              color:"#888", cursor:"pointer", fontSize:11,
+              fontFamily:"inherit", display:"flex", alignItems:"center", gap:6,
+            }}>
+              <span>⬆</span> Raw File
+            </button>
+          </div>
+
+          <div style={{ padding:"8px 8px 4px" }}>
+            <div style={{ fontSize:9, color:"#444", letterSpacing:1.8, padding:"6px 4px 6px", textTransform:"uppercase" }}>Target Language</div>
+            <div style={{ position:"relative" }}>
+              <button onClick={() => setShowLangMenu(v => !v)} style={{
+                width:"100%", padding:"7px 10px", borderRadius:6,
+                border:"1px solid #1e1e30", background:"#111120",
+                color:"#ccc", cursor:"pointer", fontSize:11,
+                fontFamily:"inherit", display:"flex", justifyContent:"space-between", alignItems:"center",
+              }}>
+                {lang} <span style={{ fontSize:9, color:"#555" }}>▼</span>
+              </button>
+              {showLangMenu && (
+                <div style={{
+                  position:"absolute", top:"calc(100% + 3px)", left:0, right:0,
+                  background:"#151525", border:"1px solid #1e1e30",
+                  borderRadius:6, zIndex:50, overflow:"hidden",
+                }}>
+                  {LANGUAGES.map(l => (
+                    <button key={l} onClick={() => { setLang(l); setShowLangMenu(false); }} style={{
+                      width:"100%", padding:"7px 10px", border:"none",
+                      background: l===lang ? "rgba(108,99,255,.12)" : "transparent",
+                      color: l===lang ? "#a78bfa" : "#888",
+                      cursor:"pointer", fontSize:11, fontFamily:"inherit", textAlign:"left",
+                    }}>{l}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding:"0 8px" }}>
+            <div style={{ fontSize:9, color:"#444", letterSpacing:1.8, padding:"10px 4px 6px", textTransform:"uppercase" }}>Features</div>
+            {ALL_FEATURES.map(f => (
+              <div key={f.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 4px", borderBottom:"1px solid #151525" }}>
+                <span style={{ fontSize:12, color:"#bbb" }}>{f.label}</span>
+                <Toggle on={!!options[f.id]} onChange={() => toggle(f.id)} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop:"auto", padding:"10px 12px", borderTop:"1px solid #151525", fontSize:10, color:"#444" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+              <span>Usage</span><span style={{ color:"#4adf8a" }}>Unlimited</span>
+            </div>
+            <div style={{ height:3, background:"#1a1a2e", borderRadius:2 }}>
+              <div style={{ height:"100%", width:"40%", borderRadius:2, background:"linear-gradient(90deg,#6c63ff,#a78bfa)" }}/>
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+            {/* Input */}
+            <div style={{ flex:1, display:"flex", flexDirection:"column", borderRight:"1px solid #1a1a2e" }}>
+              <div style={{ height:36, background:"#0e0e1b", borderBottom:"1px solid #1a1a2e", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 14px" }}>
+                <span style={{ fontSize:10, color:"#555", fontStyle:"italic" }}>{code.slice(0,30).replace(/\n/g," ")}…</span>
+                <button style={{ border:"1px solid #1e1e30", background:"#13132a", color:"#666", fontSize:10, padding:"2px 8px", borderRadius:4, cursor:"pointer", fontFamily:"inherit" }}>RAW</button>
+              </div>
+              <textarea value={code} onChange={e => setCode(e.target.value)} spellCheck={false} style={{
+                flex:1, background:"#090912", color:"#c8c8e8", border:"none",
+                padding:"14px 16px", fontFamily:"'JetBrains Mono',monospace",
+                fontSize:12.5, resize:"none", outline:"none", lineHeight:1.75,
+              }}/>
+            </div>
+
+            {/* Output */}
+            <div style={{ flex:1, display:"flex", flexDirection:"column" }}>
+              <div style={{ height:36, background:"#0e0e1b", borderBottom:"1px solid #1a1a2e", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 14px" }}>
+                <span style={{ fontSize:10, color:"#555" }}>Protected Output</span>
+                {output && (
+                  <button onClick={copyOutput} style={{
+                    border:"1px solid #1e1e30", background:"#13132a",
+                    color: copied ? "#6c63ff" : "#666",
+                    fontSize:10, padding:"2px 10px", borderRadius:4,
+                    cursor:"pointer", fontFamily:"inherit", transition:"color .2s",
+                  }}>{copied ? "✓ Copied!" : "Copy"}</button>
+                )}
+              </div>
+              <div style={{
+                flex:1, padding:"14px 16px", overflowY:"auto",
+                background:"#090912", fontFamily:"'JetBrains Mono',monospace",
+                fontSize:12, lineHeight:1.75, whiteSpace:"pre-wrap", wordBreak:"break-all",
+              }}>
+                {loading && <span style={{ color:"#6c63ff" }}><span style={{ display:"inline-block", animation:"spin 1s linear infinite" }}>⟳</span> Compiling…</span>}
+                {error && <span style={{ color:"#ff6b6b" }}>-- Error: {error}</span>}
+                {!loading && !error && output && <span style={{ color:"#7aefaa" }}>{output}</span>}
+                {!loading && !error && !output && <span style={{ color:"#222235" }}>-- Protected output will appear here…</span>}
+              </div>
+            </div>
+          </div>
+
+          {/* Compile bar */}
+          <div style={{
+            height:62, background:"#0b0b18", borderTop:"1px solid #1a1a2e",
+            display:"flex", alignItems:"center", justifyContent:"center", padding:"0 20px", gap:12,
+          }}>
+            {output && <div style={{ fontSize:10, color:"#444", whiteSpace:"nowrap" }}>{(new TextEncoder().encode(output).length/1024).toFixed(1)} KB output</div>}
+            <button onClick={compile} disabled={loading || !code.trim()} style={{
+              flex:1, maxWidth:480, height:40, borderRadius:8, border:"none",
+              background: loading ? "#1a1a2e" : "linear-gradient(90deg,#5a52e0,#8b5cf6,#a78bfa)",
+              color: loading ? "#333" : "#fff",
+              fontSize:13, fontWeight:800, letterSpacing:2.5,
+              cursor: loading ? "not-allowed" : "pointer",
+              fontFamily:"inherit", transition:"all .2s",
+              boxShadow: loading ? "none" : "0 0 24px rgba(108,99,255,.35)",
+            }}>
+              {loading ? "COMPILING…" : "COMPILE SCRIPT"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
