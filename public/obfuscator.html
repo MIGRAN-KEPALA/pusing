@@ -26,17 +26,14 @@
 <script type="text/babel">
 const API_URL = "/api/obfuscate";
 
-const FREE_FEATURES = [
-  { id: "hexEncoding",     label: "Hex Encoding" },
-  { id: "stringSplitting", label: "String Splitting" },
-  { id: "xorCipher",       label: "XOR Cipher" },
-  { id: "antiDebug",       label: "Anti-Debug" },
-  { id: "variableShuffle", label: "Variable Shuffle" },
-  { id: "constantFolding", label: "Constant Folding" },
-  { id: "integrityCheck",  label: "Integrity Check" },
-];
-
-const VIP_FEATURES = [
+const ALL_FEATURES = [
+  { id: "hexEncoding",         label: "Hex Encoding" },
+  { id: "stringSplitting",     label: "String Splitting" },
+  { id: "xorCipher",           label: "XOR Cipher" },
+  { id: "antiDebug",           label: "Anti-Debug" },
+  { id: "variableShuffle",     label: "Variable Shuffle" },
+  { id: "constantFolding",     label: "Constant Folding" },
+  { id: "integrityCheck",      label: "Integrity Check" },
   { id: "junkCode",            label: "Junk Code" },
   { id: "advancedAntiDebug",   label: "Advanced Anti-Debug" },
   { id: "polymorphicEncoding", label: "Polymorphic Encoding" },
@@ -80,10 +77,10 @@ function App() {
   const [lang, setLang] = React.useState(LANGUAGES[0]);
   const [showLangMenu, setShowLangMenu] = React.useState(false);
   const [tab, setTab] = React.useState("obfuscator");
-  const isVip = false;
+  const isVip = true;
 
   const [options, setOptions] = React.useState(
-    Object.fromEntries(FREE_FEATURES.map(f => [f.id, true]))
+    Object.fromEntries(ALL_FEATURES.map(f => [f.id, true]))
   );
 
   const toggle = id => setOptions(prev => ({ ...prev, [id]: !prev[id] }));
@@ -133,15 +130,7 @@ function App() {
           </div>
         </a>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <div style={{
-            display:"flex", alignItems:"center", gap:6,
-            background:"#13132a", border:"1px solid #222240",
-            borderRadius:6, padding:"4px 10px", fontSize:11,
-          }}>
-            <span style={{ color:"#555", fontSize:10 }}>Tier:</span>
-            <span style={{ border:"1px solid #2a2a4a", borderRadius:4, padding:"1px 6px", fontSize:10, color:"#888" }}>FREE</span>
-            <span style={{ fontWeight:700, color:"#aaa" }}>Rebels</span>
-          </div>
+          
           <button style={{
             background:"#5865F2", border:"none", borderRadius:6,
             padding:"5px 12px", color:"#fff", fontSize:11,
@@ -184,11 +173,10 @@ function App() {
             <button style={{
               width:"100%", padding:"7px 12px", borderRadius:6,
               border:"1px solid #1e1e30", background:"transparent",
-              color:"#444", cursor:"not-allowed", fontSize:11,
-              fontFamily:"inherit", display:"flex", alignItems:"center", justifyContent:"space-between",
+              color:"#888", cursor:"pointer", fontSize:11,
+              fontFamily:"inherit", display:"flex", alignItems:"center", gap:6,
             }}>
-              <span>⬆ Raw File</span>
-              <span style={{ background:"linear-gradient(90deg,#7c3aed,#a78bfa)", color:"#fff", fontSize:8, padding:"1px 5px", borderRadius:3, fontWeight:800 }}>VIP</span>
+              <span>⬆</span> Raw File
             </button>
           </div>
 
@@ -223,8 +211,8 @@ function App() {
           </div>
 
           <div style={{ padding:"0 8px" }}>
-            <div style={{ fontSize:9, color:"#444", letterSpacing:1.8, padding:"10px 4px 6px", textTransform:"uppercase" }}>Free Features</div>
-            {FREE_FEATURES.map(f => (
+            <div style={{ fontSize:9, color:"#444", letterSpacing:1.8, padding:"10px 4px 6px", textTransform:"uppercase" }}>Features</div>
+            {ALL_FEATURES.map(f => (
               <div key={f.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 4px", borderBottom:"1px solid #151525" }}>
                 <span style={{ fontSize:12, color:"#bbb" }}>{f.label}</span>
                 <Toggle on={!!options[f.id]} onChange={() => toggle(f.id)} />
@@ -232,22 +220,9 @@ function App() {
             ))}
           </div>
 
-          <div style={{ padding:"0 8px" }}>
-            <div style={{ fontSize:9, color:"#444", letterSpacing:1.8, padding:"10px 4px 6px", textTransform:"uppercase" }}>VIP Features</div>
-            {VIP_FEATURES.map(f => (
-              <div key={f.id} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"6px 4px", borderBottom:"1px solid #151525" }}>
-                <span style={{ fontSize:12, color:"#444", display:"flex", alignItems:"center", gap:6 }}>
-                  {f.label}
-                  <span style={{ background:"linear-gradient(90deg,#7c3aed,#a78bfa)", color:"#fff", fontSize:8, padding:"1px 4px", borderRadius:3, fontWeight:800 }}>VIP</span>
-                </span>
-                <Toggle on={false} onChange={() => {}} disabled />
-              </div>
-            ))}
-          </div>
-
           <div style={{ marginTop:"auto", padding:"10px 12px", borderTop:"1px solid #151525", fontSize:10, color:"#444" }}>
             <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-              <span>Usage</span><span style={{ color:"#666" }}>2 / 5 (6h)</span>
+              <span>Usage</span><span style={{ color:"#4adf8a" }}>Unlimited</span>
             </div>
             <div style={{ height:3, background:"#1a1a2e", borderRadius:2 }}>
               <div style={{ height:"100%", width:"40%", borderRadius:2, background:"linear-gradient(90deg,#6c63ff,#a78bfa)" }}/>

@@ -19,10 +19,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "SUPABASE_FUNCTION_URL": "@supabase_function_url",
-    "SUPABASE_ANON_KEY": "@supabase_anon_key"
-  },
   "headers": [
     {
       "source": "/api/(.*)",
